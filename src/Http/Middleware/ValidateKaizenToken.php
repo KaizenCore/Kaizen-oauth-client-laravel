@@ -64,7 +64,18 @@ class ValidateKaizenToken
             return $this->unauthorized('Invalid or expired token.');
         }
 
-        // Check required scopes
+        // Create KaizenUser and attach to request
+        $user = $this->createKaizenUser($userData, $token);
+
+        $request->merge(['kaizen_user' => $user]);
+        $request->setUserResolver(fn () => $user);
+
+        // Admin bypass - admins have access to all routes
+        if ($this->isAdmin($userData)) {
+            return $next($request);
+        }
+
+        // Check required scopes for non-admin users
         if (! empty($scopes)) {
             $tokenScopes = $userData['scopes'] ?? [];
 
@@ -74,12 +85,6 @@ class ValidateKaizenToken
                 }
             }
         }
-
-        // Create KaizenUser and attach to request
-        $user = $this->createKaizenUser($userData, $token);
-
-        $request->merge(['kaizen_user' => $user]);
-        $request->setUserResolver(fn () => $user);
 
         return $next($request);
     }
@@ -120,7 +125,19 @@ class ValidateKaizenToken
             }
         }
 
-        // Check required scopes
+        // Create KaizenUser from session data
+        $userData = array_merge($sessionUser, ['scopes' => $sessionScopes]);
+        $user = $this->createKaizenUser($userData, $sessionToken);
+
+        $request->merge(['kaizen_user' => $user]);
+        $request->setUserResolver(fn () => $user);
+
+        // Admin bypass - admins have access to all routes
+        if ($this->isAdmin($sessionUser)) {
+            return $next($request);
+        }
+
+        // Check required scopes for non-admin users
         if (! empty($scopes)) {
             foreach ($scopes as $requiredScope) {
                 if (! in_array($requiredScope, $sessionScopes)) {
@@ -129,13 +146,25 @@ class ValidateKaizenToken
             }
         }
 
-        // Create KaizenUser from session data
-        $user = $this->createKaizenUser(array_merge($sessionUser, ['scopes' => $sessionScopes]), $sessionToken);
-
-        $request->merge(['kaizen_user' => $user]);
-        $request->setUserResolver(fn () => $user);
-
         return $next($request);
+    }
+
+    /**
+     * Check if the user is an admin.
+     *
+     * Supports both "role" (string) and "roles" (array) formats.
+     */
+    protected function isAdmin(array $userData): bool
+    {
+        // Check "role" as string
+        if (($userData['role'] ?? null) === 'admin') {
+            return true;
+        }
+
+        // Check "roles" as array
+        $roles = $userData['roles'] ?? [];
+
+        return is_array($roles) && in_array('admin', $roles);
     }
 
     /**
