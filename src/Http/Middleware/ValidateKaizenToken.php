@@ -68,6 +68,7 @@ class ValidateKaizenToken
         $user = $this->createKaizenUser($userData, $token);
 
         $request->attributes->set('kaizen_user', $user);
+        $request->attributes->set('kaizen_user_id', $user->getId());
         $request->setUserResolver(fn () => $user);
 
         // Admin bypass - admins have access to all routes
@@ -130,6 +131,7 @@ class ValidateKaizenToken
         $user = $this->createKaizenUser($userData, $sessionToken);
 
         $request->attributes->set('kaizen_user', $user);
+        $request->attributes->set('kaizen_user_id', $user->getId());
         $request->setUserResolver(fn () => $user);
 
         // Admin bypass - admins have access to all routes
