@@ -97,7 +97,7 @@ class KaizenProvider extends AbstractProvider implements ProviderInterface
     /**
      * Refresh the access token with a refresh token.
      */
-    public function refreshToken(string $refreshToken): array
+    public function refreshToken($refreshToken)
     {
         $response = $this->getHttpClient()->post($this->getTokenUrl(), [
             RequestOptions::HEADERS => [
