@@ -90,7 +90,8 @@ class ValidateKaizenToken
     protected function authenticateWithSession(Request $request, Closure $next, array $scopes): Response
     {
         $sessionUser = session('kaizen_user');
-        $sessionToken = session('kaizen_access_token');
+        // Support both 'kaizen_access_token' and 'kaizen_token' for flexibility
+        $sessionToken = session('kaizen_access_token') ?? session('kaizen_token');
         $sessionScopes = session('kaizen_scopes', []);
 
         if (! $sessionUser || ! $sessionToken) {
@@ -142,7 +143,9 @@ class ValidateKaizenToken
      */
     protected function hasSessionAuth(): bool
     {
-        return session()->has('kaizen_access_token') && session()->has('kaizen_user');
+        $hasToken = session()->has('kaizen_access_token') || session()->has('kaizen_token');
+
+        return $hasToken && session()->has('kaizen_user');
     }
 
     /**
