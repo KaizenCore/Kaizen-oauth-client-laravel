@@ -7,7 +7,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Configure your Kaizen OAuth client credentials here. You can obtain
-    | these from your Kaizen dashboard at https://kaizenmc.fr/settings/oauth
+    | these from your Kaizen dashboard at https://kaizencore.tech/settings/oauth
     |
     */
 
@@ -26,6 +26,19 @@ return [
     */
 
     'base_url' => env('KAIZEN_BASE_URL', 'https://kaizencore.tech'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Token Cache TTL
+    |--------------------------------------------------------------------------
+    |
+    | How long to cache validated access tokens (in seconds). This reduces
+    | the number of validation requests to the Kaizen OAuth server.
+    | Set to 0 to disable caching.
+    |
+    */
+
+    'token_cache_ttl' => env('KAIZEN_TOKEN_CACHE_TTL', 300),
 
     /*
     |--------------------------------------------------------------------------

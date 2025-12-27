@@ -157,4 +157,39 @@ class KaizenProvider extends AbstractProvider implements ProviderInterface
 
         return $this->scopes($scopes);
     }
+
+    /**
+     * Get the HTTP client instance.
+     *
+     * Exposed for use by middleware that needs to validate tokens.
+     */
+    public function httpClient(): \GuzzleHttp\Client
+    {
+        return $this->getHttpClient();
+    }
+
+    /**
+     * Validate an access token and return user info if valid.
+     *
+     * @return array<string, mixed>|null Returns user data with scopes, or null if invalid
+     */
+    public function validateToken(string $token): ?array
+    {
+        try {
+            $response = $this->getHttpClient()->get($this->baseUrl.'/api/oauth/userinfo', [
+                RequestOptions::HEADERS => [
+                    'Authorization' => 'Bearer '.$token,
+                    'Accept' => 'application/json',
+                ],
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                return json_decode($response->getBody()->getContents(), true);
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
 }

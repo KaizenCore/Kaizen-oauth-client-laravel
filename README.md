@@ -128,26 +128,87 @@ $profile = $provider->getUserProfile(session('kaizen_access_token'));
 
 ## Middleware
 
-The package includes a middleware to protect routes that require Kaizen authentication:
+The package includes middleware for both web session-based and API token-based authentication.
+
+### Web Session Authentication
+
+For traditional web applications that store tokens in sessions:
 
 ```php
-// bootstrap/app.php
-->withMiddleware(function (Middleware $middleware) {
-    $middleware->alias([
-        'kaizen.auth' => \Kaizen\OAuth\Http\Middleware\EnsureKaizenToken::class,
-    ]);
-})
-
 // routes/web.php
 Route::middleware('kaizen.auth')->group(function () {
     Route::get('/dashboard', DashboardController::class);
 });
 ```
 
-The middleware will:
+The `kaizen.auth` middleware will:
 - Check for a valid Kaizen token in the session
 - Automatically refresh expired tokens using the refresh token
 - Redirect to the login route if no valid token exists
+
+### API Token Authentication
+
+For API endpoints that receive Bearer tokens in the Authorization header:
+
+```php
+// routes/api.php
+
+// Basic authentication - validates the token
+Route::middleware('kaizen.api')->group(function () {
+    Route::get('/user', fn(Request $request) => $request->get('kaizen_user'));
+});
+
+// With required scopes - user must have ALL specified scopes
+Route::middleware('kaizen.api:skins:read,skins:create')->group(function () {
+    Route::get('/skins', [SkinController::class, 'index']);
+    Route::post('/skins', [SkinController::class, 'store']);
+});
+
+// Check for ANY scope - user needs at least one
+Route::middleware(['kaizen.api', 'kaizen.scopes.any:skins:read,skins:manage'])->group(function () {
+    Route::get('/my-skins', [SkinController::class, 'mySkins']);
+});
+```
+
+The `kaizen.api` middleware will:
+- Extract the Bearer token from the Authorization header
+- Validate the token against the Kaizen OAuth server
+- Cache validation results (configurable TTL, default 5 minutes)
+- Attach the authenticated user to the request
+- Optionally check for required scopes
+
+### Accessing the Authenticated User
+
+```php
+// In your controller
+public function index(Request $request)
+{
+    $user = $request->get('kaizen_user');
+
+    // Access user properties
+    $user->getId();
+    $user->getName();
+    $user->getEmail();
+    $user->getMinecraftUuid();
+
+    // Check scopes
+    $scopes = $user->getRaw()['scopes'] ?? [];
+
+    return response()->json([
+        'user' => $user->getId(),
+        'scopes' => $scopes,
+    ]);
+}
+```
+
+### Available Middleware Aliases
+
+| Alias | Class | Description |
+|-------|-------|-------------|
+| `kaizen.auth` | `EnsureKaizenToken` | Web session-based auth with auto-refresh |
+| `kaizen.api` | `ValidateKaizenToken` | API Bearer token validation |
+| `kaizen.scopes` | `CheckKaizenScopes` | Require ALL specified scopes |
+| `kaizen.scopes.any` | `CheckKaizenScopesAny` | Require ANY of specified scopes |
 
 ## KaizenUser Object
 
