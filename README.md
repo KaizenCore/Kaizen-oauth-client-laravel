@@ -155,7 +155,7 @@ For API endpoints that receive Bearer tokens in the Authorization header:
 
 // Basic authentication - validates the token
 Route::middleware('kaizen.api')->group(function () {
-    Route::get('/user', fn(Request $request) => $request->get('kaizen_user'));
+    Route::get('/user', fn(Request $request) => $request->attributes->get('kaizen_user'));
 });
 
 // With required scopes - user must have ALL specified scopes
@@ -192,13 +192,14 @@ Features:
 // In your controller
 public function index(Request $request)
 {
-    $user = $request->get('kaizen_user');
+    $user = $request->attributes->get('kaizen_user');
 
     // Access user properties
     $user->getId();
     $user->getName();
     $user->getEmail();
     $user->getMinecraftUuid();
+    $user->isAdmin();  // Check if user is admin
 
     // Check scopes
     $scopes = $user->getRaw()['scopes'] ?? [];

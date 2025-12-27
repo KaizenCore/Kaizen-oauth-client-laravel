@@ -67,7 +67,7 @@ class ValidateKaizenToken
         // Create KaizenUser and attach to request
         $user = $this->createKaizenUser($userData, $token);
 
-        $request->merge(['kaizen_user' => $user]);
+        $request->attributes->set('kaizen_user', $user);
         $request->setUserResolver(fn () => $user);
 
         // Admin bypass - admins have access to all routes
@@ -129,7 +129,7 @@ class ValidateKaizenToken
         $userData = array_merge($sessionUser, ['scopes' => $sessionScopes]);
         $user = $this->createKaizenUser($userData, $sessionToken);
 
-        $request->merge(['kaizen_user' => $user]);
+        $request->attributes->set('kaizen_user', $user);
         $request->setUserResolver(fn () => $user);
 
         // Admin bypass - admins have access to all routes
