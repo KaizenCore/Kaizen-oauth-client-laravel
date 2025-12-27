@@ -170,12 +170,21 @@ Route::middleware(['kaizen.api', 'kaizen.scopes.any:skins:read,skins:manage'])->
 });
 ```
 
-The `kaizen.api` middleware will:
-- Extract the Bearer token from the Authorization header
-- Validate the token against the Kaizen OAuth server
-- Cache validation results (configurable TTL, default 5 minutes)
-- Attach the authenticated user to the request
-- Optionally check for required scopes
+The `kaizen.api` middleware supports two authentication methods:
+
+1. **Bearer Token** (primary): Extract token from `Authorization: Bearer <token>` header
+2. **Session Fallback** (for SPAs): Use session-stored tokens when no Bearer token is present
+
+This makes it perfect for:
+- External API consumers (use Bearer tokens)
+- Same-domain SPAs/dashboards (use session auth automatically)
+
+Features:
+- Validates tokens against the Kaizen OAuth server
+- Caches validation results (configurable TTL, default 5 minutes)
+- Auto-refreshes expired session tokens
+- Attaches the authenticated user to the request
+- Optionally checks for required scopes
 
 ### Accessing the Authenticated User
 

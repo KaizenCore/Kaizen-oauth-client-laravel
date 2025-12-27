@@ -12,6 +12,10 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Middleware to validate Kaizen OAuth Bearer tokens for API endpoints.
  *
+ * Supports two authentication methods:
+ * 1. Bearer token in Authorization header (standard API auth)
+ * 2. Session-based auth fallback (for SPAs on same domain)
+ *
  * Usage:
  *   Route::middleware('kaizen.api')->group(function () {
  *       Route::get('/api/user', fn() => request()->kaizenUser());
@@ -33,12 +37,26 @@ class ValidateKaizenToken
      */
     public function handle(Request $request, Closure $next, string ...$scopes): Response
     {
+        // Try Bearer token first
         $token = $this->extractBearerToken($request);
 
-        if (! $token) {
-            return $this->unauthorized('Missing authorization token.');
+        if ($token) {
+            return $this->authenticateWithToken($request, $next, $token, $scopes);
         }
 
+        // Fallback to session-based auth (for SPAs on same domain)
+        if ($this->hasSessionAuth()) {
+            return $this->authenticateWithSession($request, $next, $scopes);
+        }
+
+        return $this->unauthorized('Missing authorization token.');
+    }
+
+    /**
+     * Authenticate using Bearer token.
+     */
+    protected function authenticateWithToken(Request $request, Closure $next, string $token, array $scopes): Response
+    {
         // Validate token and get user info (cached for performance)
         $userData = $this->validateToken($token);
 
@@ -58,6 +76,80 @@ class ValidateKaizenToken
         }
 
         // Create KaizenUser and attach to request
+        $user = $this->createKaizenUser($userData, $token);
+
+        $request->merge(['kaizen_user' => $user]);
+        $request->setUserResolver(fn () => $user);
+
+        return $next($request);
+    }
+
+    /**
+     * Authenticate using session (fallback for SPAs).
+     */
+    protected function authenticateWithSession(Request $request, Closure $next, array $scopes): Response
+    {
+        $sessionUser = session('kaizen_user');
+        $sessionToken = session('kaizen_access_token');
+        $sessionScopes = session('kaizen_scopes', []);
+
+        if (! $sessionUser || ! $sessionToken) {
+            return $this->unauthorized('Session expired. Please log in again.');
+        }
+
+        // Check if token is expired
+        $expiresAt = session('kaizen_expires_at');
+        if ($expiresAt && now()->greaterThan($expiresAt)) {
+            // Try to refresh the token
+            $refreshToken = session('kaizen_refresh_token');
+            if ($refreshToken) {
+                try {
+                    $newTokens = $this->provider->refreshToken($refreshToken);
+                    $this->storeSessionTokens($newTokens);
+                    $sessionToken = $newTokens['access_token'];
+                } catch (\Exception $e) {
+                    $this->clearSession();
+
+                    return $this->unauthorized('Session expired. Please log in again.');
+                }
+            } else {
+                $this->clearSession();
+
+                return $this->unauthorized('Session expired. Please log in again.');
+            }
+        }
+
+        // Check required scopes
+        if (! empty($scopes)) {
+            foreach ($scopes as $requiredScope) {
+                if (! in_array($requiredScope, $sessionScopes)) {
+                    return $this->forbidden("Missing required scope: {$requiredScope}");
+                }
+            }
+        }
+
+        // Create KaizenUser from session data
+        $user = $this->createKaizenUser(array_merge($sessionUser, ['scopes' => $sessionScopes]), $sessionToken);
+
+        $request->merge(['kaizen_user' => $user]);
+        $request->setUserResolver(fn () => $user);
+
+        return $next($request);
+    }
+
+    /**
+     * Check if session-based auth is available.
+     */
+    protected function hasSessionAuth(): bool
+    {
+        return session()->has('kaizen_access_token') && session()->has('kaizen_user');
+    }
+
+    /**
+     * Create a KaizenUser from user data.
+     */
+    protected function createKaizenUser(array $userData, string $token): KaizenUser
+    {
         $user = new KaizenUser;
         $user->setRaw($userData)->map([
             'id' => $userData['id'] ?? null,
@@ -67,10 +159,33 @@ class ValidateKaizenToken
         ]);
         $user->token = $token;
 
-        $request->merge(['kaizen_user' => $user]);
-        $request->setUserResolver(fn () => $user);
+        return $user;
+    }
 
-        return $next($request);
+    /**
+     * Store refreshed tokens in session.
+     */
+    protected function storeSessionTokens(array $tokens): void
+    {
+        session([
+            'kaizen_access_token' => $tokens['access_token'],
+            'kaizen_refresh_token' => $tokens['refresh_token'] ?? session('kaizen_refresh_token'),
+            'kaizen_expires_at' => now()->addSeconds($tokens['expires_in'] ?? 3600),
+        ]);
+    }
+
+    /**
+     * Clear session data.
+     */
+    protected function clearSession(): void
+    {
+        session()->forget([
+            'kaizen_access_token',
+            'kaizen_refresh_token',
+            'kaizen_expires_at',
+            'kaizen_user',
+            'kaizen_scopes',
+        ]);
     }
 
     /**
