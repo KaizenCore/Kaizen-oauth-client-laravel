@@ -27,8 +27,8 @@ That's it! The package is ready to use.
 # Custom redirect URI (default: /auth/kaizen/callback)
 KAIZEN_REDIRECT_URI=/custom/callback
 
-# Custom base URL (default: https://kaizenmc.fr)
-KAIZEN_BASE_URL=https://kaizenmc.fr
+# Custom base URL (default: https://kaizencore.tech)
+KAIZEN_BASE_URL=https://kaizencore.tech
 
 # Custom scopes (default: user:read,user:email)
 KAIZEN_SCOPES=user:read,user:email,user:profile
@@ -214,7 +214,7 @@ $user->getAttributes();           // Get all raw attributes
 
 ## Getting OAuth Credentials
 
-1. Go to your Kaizen dashboard: https://kaizenmc.fr/settings/oauth
+1. Go to your Kaizen dashboard: https://kaizencore.tech/settings/oauth
 2. Create a new OAuth client
 3. Set the redirect URI to match your application
 4. Copy the Client ID and Client Secret to your `.env` file

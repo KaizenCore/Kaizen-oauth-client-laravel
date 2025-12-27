@@ -25,7 +25,7 @@ return [
     |
     */
 
-    'base_url' => env('KAIZEN_BASE_URL', 'https://kaizenmc.fr'),
+    'base_url' => env('KAIZEN_BASE_URL', 'https://kaizencore.tech'),
 
     /*
     |--------------------------------------------------------------------------

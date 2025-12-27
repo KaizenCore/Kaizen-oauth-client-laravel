@@ -14,7 +14,7 @@ class KaizenProvider extends AbstractProvider implements ProviderInterface
 
     protected string $baseUrl;
 
-    public function __construct($request, $clientId, $clientSecret, $redirectUrl, string $baseUrl = 'https://kaizenmc.fr')
+    public function __construct($request, $clientId, $clientSecret, $redirectUrl, string $baseUrl = 'https://kaizencore.tech')
     {
         parent::__construct($request, $clientId, $clientSecret, $redirectUrl);
         $this->baseUrl = rtrim($baseUrl, '/');
