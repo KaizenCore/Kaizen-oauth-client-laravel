@@ -5,7 +5,7 @@ Laravel Socialite provider for Kaizen OAuth authentication.
 ## Installation
 
 ```bash
-composer require kaizen/laravel-oauth-client
+composer require kaizencore/laravel-oauth-client
 ```
 
 The package will automatically register itself via Laravel's package auto-discovery.

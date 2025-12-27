@@ -1,5 +1,5 @@
 {
-    "name": "kaizen/laravel-oauth-client",
+    "name": "kaizencore/laravel-oauth-client",
     "description": "Laravel Socialite provider for Kaizen OAuth authentication",
     "keywords": ["laravel", "socialite", "oauth", "kaizen", "authentication", "minecraft"],
     "license": "MIT",
